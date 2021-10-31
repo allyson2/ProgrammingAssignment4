@@ -2,37 +2,29 @@
 # 1. Merging the training and the test sets to create one data set
 ################################################################################
 
+install.packages('reshape2')
+library(reshape2)
+library(dplyr)
+
+# Download the files
+download.file("https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+              ,"Dataset.zip")
+unzip("Dataset.zip")
+file.remove("Dataset.zip")
+
 # Reading text files
-files <- dir(recursive = T, pattern = ".txt$")
-files <- files[c(1,2, 5:28)]
+files <- dir(path = "UCI HAR Dataset", recursive = T, pattern = ".txt$", full.names = T)
+files <- files[c(1,2, 14:16, 26:28)]
 file_names <- c('activity_labels'
                 ,'features'
-                ,'body_acc_x_test'
-                ,'body_acc_y_test'
-                ,'body_acc_z_test'
-                ,'body_gyro_x_test'
-                ,'body_gyro_y_test'
-                ,'body_gyro_z_test'
-                ,'total_acc_x_test'
-                ,'total_acc_y_test'
-                ,'total_acc_z_test'
                 ,'subject_test'
                 ,'X_test'
                 ,'y_test'
-                ,'body_acc_x_train'
-                ,'body_acc_y_train'
-                ,'body_acc_z_train'
-                ,'body_gyro_x_train'
-                ,'body_gyro_y_train'
-                ,'body_gyro_z_train'
-                ,'total_acc_x_train'
-                ,'total_acc_y_train'
-                ,'total_acc_z_train'
                 ,'subject_train'
                 ,'X_train'
                 ,'y_train')
 
-f <- lapply(files, read.table, header = F, )
+f <- lapply(files, read.table, header = F)
 names(f) <- file_names
 
 X <- rbind(f$X_train, f$X_test)
@@ -71,9 +63,13 @@ colnames(X) <- features[,2]
 # variable for each activity and each subject
 ################################################################################
 
-final_df <- cbind(X[,used_columns], activity, subjects)
+df <- cbind(X[,used_columns], activity, subjects)
+
+grouped <- group_by(df, subject, activity)
+final_df <- summarise(grouped, across(used_columns, list(mean)))
 
 write.table(final_df, file = "tidyData.txt", row.names = F)
 
-
-
+# Another option to do the same:
+# melted <- melt(df, id = c('subject', 'activity'))
+# final_df <- dcast(melted, subject + activity ~ variable, mean)
